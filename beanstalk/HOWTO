@@ -1,0 +1,43 @@
+--------------------------------------------------------------------------------------------
+|                                                                                          |
+|Beanstalk -> Create Application (webserver) -> Create Environment -> Create EC2 webserver |
+|  (1)              (2)                              (3)                   (4)             |
+|                                                                                          |
+--------------------------------------------------------------------------------------------
+
+
+Notice point:
+
+(1)--------------------------------------------
++ Create custom configuration --> choose myVPC (to run (3) successfully)
++ Default AIM role (aws-elasticbeanstalk-ec2-role) did not allow full access to create/deploy PHP service
+(fix: AIM -> roles -> aws-elasticbeanstalk-ec2-role & attach new policy AWSElasticBeanstalkFullAccess)
+
+(4)--------------------------------------------
++ mkdir webserver
++ yum install python-pip
+  pip install awsebcli
+  pip install --upgrade awsebcli
+  export PATH=~/.local/bin:$PATH --> ~/.bashrc
++ eb init 
+
+"eb init --interactive" if have below error:
+"Cannot setup CodeCommit because there is no Source Control setup, continuing with initialization"
+
++ vi index.php
+			<?php
+			$dbhost = "aa152n049qz5bho.crwyqjzsyfsx.us-west-2.rds.amazonaws.com:3306";
+			$dbuser = "xbaotha";
+			$dbpass = "Thaibao14";
+			
+			// Create connection
+			$conn = new mysqli($servername, $username, $password);
+			
+			// Check connection
+			if ($conn->connect_error) {
+			    die("Connection failed: " . $conn->connect_error);
+			} 
+			echo "Connected successfully";
+			?>
++ eb deploy
+

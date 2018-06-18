@@ -1,0 +1,40 @@
+#---------------------------------------------------------------------#
+#  COMPLETE STEPS for remote access of MySQL (deployed on Amazon EC2) #
+#---------------------------------------------------------------------#
+
+1. Add MySQL to inbound rules.
+Go to security group of your ec2 instance -> edit inbound rules -> add new rule -> choose MySQL/Aurora (open port 3306) and source to Anywhere.
+
+2. (Optional) Add bind-address = 0.0.0.0 to my.cnf
+On database server:
+sudo vi /etc/my.cnf --> add this line: 
+bind-address = 0.0.0.0
+
+Restart MySQL --> systemctl restart mariadb
+
+3. Create a remote user and grant privileges.
+Login to MySQL in database server:
+mysql -u root
+
+Now write following commands:
+
+CREATE USER 'baohuynh'@'localhost' IDENTIFIED BY 'baohuynhpassword';
+
+CREATE USER 'baohuynh'@'%' IDENTIFIED BY 'baohuynhpassword';
+
+GRANT ALL PRIVILEGES ON *.* to baohuynh@localhost IDENTIFIED BY 'baohuynhpassword' WITH GRANT OPTION;
+
+GRANT ALL PRIVILEGES ON *.* to baohuynh@'%' IDENTIFIED BY 'baohuynhpassword' WITH GRANT OPTION;
+
+FLUSH PRIVILEGES;
+
+EXIT;
+
+---> DONE
+
+4. After this, MySQL dB can be remotely accessed by entering public dns/ip of your instance as MySQL Host Address, username as baohuynh and password as baohuynhpassword. (Port is set to default at 3306)
+On remote working machine: 
+mysql -u baohuynh -h <dns_database_server> -p
+-u : user
+-h : hostname
+-p : prompting for password
