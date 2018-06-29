@@ -1,0 +1,15 @@
+1. Fix docker.service start fail:
+- Disable SELinux (/etc/sysconfig/selinux --> SELINUX=disabled)
+
+2. "aws configure" before using AWSCLI:
+- Login to "https://console.aws.amazon.com/iam/home?region=us-west-2#/users/xbaotha?section=security_credentials"
+(get information about login credentials)
+
+3. Getting knowledge about containter/task/service/cluster
+---> https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/firstRun
+
+
+4. Supervisord
+Usages: tools for starting and monitoring multiple processes/application with just one configuration.
+        --> applicable for starting multiple process with container Dockerfile.
+		More info: https://medium.com/@SaravSun/admatic-tech-blog-starting-multiple-services-inside-a-container-with-supervisord-16e3beb55916

@@ -1,0 +1,14 @@
+
+module my-systemd 1.0;
+
+require {
+	type unconfined_service_t;
+	type init_t;
+	class unix_stream_socket { create setopt };
+}
+
+#============= init_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow init_t unconfined_service_t:unix_stream_socket create;
+allow init_t unconfined_service_t:unix_stream_socket setopt;
