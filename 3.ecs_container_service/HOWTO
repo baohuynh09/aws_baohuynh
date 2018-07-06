@@ -1,15 +1,92 @@
-1. Fix docker.service start fail:
-- Disable SELinux (/etc/sysconfig/selinux --> SELINUX=disabled)
++--------------------------------------------+
+|  +------------------------------------+    |
+|  |                                    |    |
+|  |    +-------------------------+     |    |
+|  |    |   +----------------+    |     |    |
+|  |    |   | CONTAINER (1)  |    |<----|----|--- [TASK-DEFINITION] (2)
+|  |    |   +----------------+    |     |    |
+|  |    +-------------------------|     |<---|-------*SERVICE* (3)
+|  |                                    |    |
+|  +------------------------------------+    |<----------**CLUSTER** (4)
++--------------------------------------------+               |
+                                                             |
+                                                             |
+                                                             |
+                                                             V
+                                                    -------------------
+                                                    | ECS instance (5)|
+                                                    -------------------
 
-2. "aws configure" before using AWSCLI:
-- Login to "https://console.aws.amazon.com/iam/home?region=us-west-2#/users/xbaotha?section=security_credentials"
-(get information about login credentials)
-
-3. Getting knowledge about containter/task/service/cluster
----> https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/firstRun
-
-
-4. Supervisord
+-----------------------------
+        [1] CONTAINER
+-----------------------------
+1.1 Supervisord
 Usages: tools for starting and monitoring multiple processes/application with just one configuration.
         --> applicable for starting multiple process with container Dockerfile.
-		More info: https://medium.com/@SaravSun/admatic-tech-blog-starting-multiple-services-inside-a-container-with-supervisord-16e3beb55916
+More info: https://medium.com/@SaravSun/admatic-tech-blog-starting-multiple-services-inside-a-container-with-supervisord-16e3beb55916
+
+-----------------------------
+     [2] TASK-DEFINITION
+-----------------------------
+2.1 Select launch type compatibility:
++ (***) EC2 --> Can use EC2 in myVPC as ECS instance
++       Farget --> use instance in "awsvpc" --> our EC2 could not start container although
+                   it's registered in the cluster (but can start container also
+                   checking "EC2 console -> Network interface -> ENI is added but not 
+                   belong to any instance & run container on this).
+2.2 TaskRole: --> ecsTaskExecutionRole (if not available, create one)
+
+-----------------------------
+         [3] SERVICE
+-----------------------------
+N/A
+
+-----------------------------
+         [4] CLUSTER
+-----------------------------
+N/A
+
+-----------------------------
+   [5] ECS Instance setup
+-----------------------------
+5.1 Create EC2 for ECS cluster registration:
+--> AIM: optimize-for-ECS
+    IAM role: select role "ecsInstanceRole"
+
+5.2 Fix docker.service start fail:
+- Disable SELinux (/etc/sysconfig/selinux --> SELINUX=disabled)
+
+5.3 Using USERDATA for additional job during instance bootup
+By this way, EC2 lauching will be regsitered as "your_cluster_name"'s ECS instance.
+* docs refer: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/launching-instance.html#configure_instance_details_step
+
+----
+#!/bin/bash
+echo ECS_CLUSTER="your_cluster_name=" >> /etc/ecs/ecs.config
+---
+NOTICE: this USERDATA only AFFECT when LAUCHING new instance, because config-drive(iso) from cloud-init only injected when lauching new instance.
+
+-----------------------------
+      INFO & DEBUGGING
+-----------------------------
+6.1 "aws configure" before using AWSCLI:
+---> Login to "https://console.aws.amazon.com/iam/home?region=us-west-2#/users/xbaotha?section=security_credentials"
+(get information about login credentials)
+
+6.2 Getting knowledge about containter/task/service/cluster
+---> https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/firstRun
+
+6.3 Debugging
++ debugging logs: /var/log/ecs/ecs*                ---> logs for starting ECS on current ECS instance
+                  /var/log/cloud-init-output.log   ---> logs during instance bootup on cloud
+                  /var/log/cloud-init.log
+
+                  /var/lib/cloud/instance          ---> config-drive folder for current instance
++ enable docker debug mode on AMI ECS-optimized:
+                vi  /etc/sysconfig/docker
+                add "-D" option to:       OPTIONS="-D --default-ulimit nofile=1024:4096"
+                restart docker: service docker restart
+                restart ecs:    restart ecs
+
+6.4 Tips for stopping ECS to avodi charge:
+Delete service --> all task will be stopped accordingly
