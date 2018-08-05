@@ -1,6 +1,14 @@
 Terragrunt
 
 DRY (Don't repeat yourself)
+Running:
++ terragrunt plan
++ terragrunt apply
++ terragrunt apply-all (multiple module)
+
+Configure
++ export AWS_ACCESS_KEY_ID=(your access key id)
++ export AWS_SECRET_ACCESS_KEY=(your secret access key)
 
 #---------------------------------#
 #  Keep your Terraform code DRY   #
@@ -29,7 +37,7 @@ live
         │   └── main.tf
         └── vpc
             └── main.tf
---> All 3 prod, qa, stage have the same infrastructure deployment 
+--> All 3 prod, qa, stage have the same infrastructure deployment
 --> Repeat your selffffff -> NOT GOOD. Have to change to this (using .tfvars config by terragrunt):
 
 └── live
@@ -54,7 +62,7 @@ live
         │   └── terraform.tfvars
         └── vpc
             └── terraform.tfvars
-			
+
 Each terraform.tfvars would look like:
 ---------------
 terragrunt = {
@@ -63,8 +71,8 @@ terragrunt = {
   }
 }
 
-instance_count = 3					<-- could hard-code or user prompting like below code
-instance_type = "t2.micro"			<-- could hard-code or user prompting like below code
+instance_count = 3                  <-- could hard-code or user prompting like below code
+instance_type = "t2.micro"          <-- could hard-code or user prompting like below code
 
 
 ---------------
@@ -76,12 +84,12 @@ variable "instance_type" {
   description = "What kind of servers to run (e.g. t2.large)"
 }
 ---------------
-Running terragrunt :D 
+Running terragrunt :D
 - cd path-to-app-folder
 - terragrunt apply
 Procedure when running "terragrunt apply":
-a) 1st running "terragrunt apply" 
-Download the code to tmp folder 
+a) 1st running "terragrunt apply"
+Download the code to tmp folder
 --> this will be kept for future use unless URL is change
 --> minimize the up-and-running time (since re-initialize, everything takes minutes to complete)
 
@@ -91,19 +99,19 @@ In case force to update new .tf >> using --terragrunt-source-update (delete & re
 
 
 Bonus point:
-1)	terragrunt apply --terragrunt-source [path_to_another_source_terragrunt]//[current_applied_folder]
+1)  terragrunt apply --terragrunt-source [path_to_another_source_terragrunt]//[current_applied_folder]
 Ex: terragrunt apply --terragrunt-source ../../modules//app
  --> override the "source" parameter >> local checkout your code & fast change
 
 2)  path-relative is dangerous !! No hard-code
-	--> Using Inside .tfvars: use get_tfvars_dir() to get CWD
-	--> Using with CLI: 	  terragrunt apply -var-file [path_to_extra.tfvars]	
+    --> Using Inside .tfvars: use get_tfvars_dir() to get CWD
+    --> Using with CLI:       terragrunt apply -var-file [path_to_extra.tfvars]
 
 #--------------------------------------------#
 #  Keep your remote STATE configuration DRY  #
 #--------------------------------------------#
 
-Default, remote state is stored locally : terraform.tfstate
+1) Default, remote state is stored locally : terraform.tfstate
 Disadvantage:
 - Working in a team, if stored locally & 2 people push simultenously >> race condition
 - Could not storage in GIT (plain text) >> bad security
@@ -112,10 +120,62 @@ Disadvantage:
 terraform {
   backend "s3" {
     bucket         = "my-terraform-state"
-    key            = "frontend-app/terraform.tfstate"
+    key            = "frontend-app/terraform.tfstate"   <--- only this configure is unique
     region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "my-lock-table"
   }
 }
+
+2) However, above "backends" couldnt solve the DRY as repeated many times above configuration in main.tf:
+├── backend-app
+│   └── main.tf
+├── frontend-app
+│   └── main.tf
+├── mysql
+│   └── main.tf
+└── vpc
+    └── main.tf
+
+
+
+==> SOLVE by remote configuration state by terragrunt
+*******************************************************************************
+ROOT/PARENT configure: ../terraform.tfvars                  (A)
+*******************************************************************************
+*terragrunt = {
+*  remote_state {
+*    backend = "s3"
+*    config {
+*      bucket         = "my-terraform-state"
+*      key            = "${path_relative_to_include()}/terraform.tfstate"   <<< must specify to
+*      region         = "us-east-1"                                         <<< include all child config
+*      encrypt        = true
+*      dynamodb_table = "my-lock-table"
+*
+*      s3_bucket_tags {
+*        owner = "terragrunt integration test"
+*        name  = "Terraform state storage"
+*      }
+*
+*      dynamodb_table_tags {
+*        owner = "terragrunt integration test"
+*        name  = "Terraform lock table"
+*      }
+*    }
+*  }
+*}
+***********************************************************************************
+CHILD configure      :   ./mysql/terraform.tfvars           (B)
+                         ./backend-web/terraform.tfvars     (C)
+***********************************************************************************         *   terragrunt = {
+*  include {
+*    path = "${find_in_parent_folders()}"   <<<< must specify to lookup parent .tfvars
+*  }
+*}
+***********************************************************************************
+
+ORDER of root/parent and child configuration:
+- child will override parent (if extra_arguments/before_hook/source block has same name)
+- both child + parent will merge (if .......... has different name)
 
