@@ -1,0 +1,3 @@
+local-volume.yaml:
+	instruction to create 2 EBS volumes for storage of mySQL database
+
