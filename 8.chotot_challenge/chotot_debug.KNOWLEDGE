@@ -116,32 +116,12 @@ kb get ingress,nodes,pods,services,deployments --all-namespaces
 kb get all --all-namespaces
 
 
+"Attach to ingress-control to verify rules"
 kubectl exec -it <pod_name> bash --namespace=<name_space>
 kubectl exec -it  nginx-ingress-89f96847c-vpjvf bash --namespace=nginx-ingress
 
-*****
-+ kb describe service wordpress
-
-Type:                     LoadBalancer
-IP:                       100.69.71.187
-LoadBalancer Ingress:     adce7524fa9d911e89065020c50b4de7-90585666.us-west-2.elb.amazonaws.com
-Port:                     <unset>  80/TCP
-TargetPort:               80/TCP
-NodePort:                 <unset>  31422/TCP
-Endpoints:                100.96.1.19:80,100.96.2.17:80
-*****
-
-NAMESPACE     NAME                      TYPE           CLUSTER-IP      EXTERNAL-IP        PORT(S)         AGE
-default       service/kubernetes        ClusterIP      100.64.0.1      <none>             443/TCP         7h
-default       service/wordpress         LoadBalancer   100.69.71.187   adce7524fa9d9...   80:31422/TCP    29m
-default       service/wordpress-mysql   ClusterIP      None            <none>             3306/TCP        30m
-kube-system   service/kube-dns          ClusterIP      100.64.0.10     <none>             53/UDP,53/TCP   7h
-
-
-
 
 ---
-aa5d9cbdaa9cd11e89065020c50b4de7-1851362447.us-west-2.elb.amazonaws.com
 kubectl create -f namespace.yaml
 kubectl create -f rbac.yaml
 kubectl create -f default-backend.yaml           
@@ -153,45 +133,11 @@ kubectl apply -f nginx-contoller-patch.yaml
 kubectl get pods --namespace=ingress-nginx-config
 
 
-kubectl create -f coffee.yaml
-kubectl create -f tea.yaml
-kubectl create -f cafe-ingress.yaml
-Attach to ingress-control to verify rules
-kubectl exec -it  nginx-ingress-89f96847c-vpjvf bash --namespace=nginx-ingress
 
-cat /etc/nginx/nginx.config
-	server {
-		server_name cafe.example.com ;
-	...    
-	location /tea
-	...
-	location /coffee 
-	...
 
-	
-	
-"----------- NETWORK -------------------"
+
+
 kubectl exec my-nginx-3800858182-jr4a2 -- printenv | grep SERVICE
 kubectl get nodes -o yaml | grep ExternalIP -C 1
 kubectl get pods -o yaml | grep podIP
-
-
-kb describe service nginx-ingress --namespace=nginx-ingress
-Name:                     nginx-ingress
-Namespace:                nginx-ingress
-Labels:                   <none>
-Annotations:              service.beta.kubernetes.io/aws-load-balancer-backend-protocol=tcp
-                          service.beta.kubernetes.io/aws-load-balancer-proxy-protocol=*
-Selector:                 app=nginx-ingress
-Type:                     LoadBalancer
-IP:                       100.65.88.56
-LoadBalancer Ingress:     ac2b6a0fda9de11e89065020c50b4de7-247989881.us-west-2.elb.amazonaws.com
-Port:                     http  80/TCP
-TargetPort:               80/TCP
-NodePort:                 http  30539/TCP
-Endpoints:                100.96.1.21:80
-Port:                     https  443/TCP
-TargetPort:               443/TCP
-NodePort:                 https  32666/TCP
-Endpoints:                100.96.1.21:443
 

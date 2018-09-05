@@ -1,0 +1,39 @@
+Kubernetes are flexible & dynamic (Pod creation, delete, join, scale,...)
+--> Hard for developer to control & 'finding' these pod while running app !!!
+--> Solution: SERVICE DISCOVERY
+       |
+	   +--> which processes are listening
+	   +--> which address for which services
+
+'Service Object': way to create a named label sector
+
+Ex: 
+$ kubectl run alpaca-prod \
+--image=gcr.io/kuar-demo/kuard-amd64:1 \
+--replicas=3 \
+--port=8080 \
+--labels="ver=1,app=alpaca,env=prod"
+
+$ kubectl expose deployment alpaca-prod
+NAME 				CLUSTER-IP 		... PORT(S) 	 	... SELECTOR
+alpaca-prod		   10.115.245.13    ... 8080/TCP        ... app=alpaca,env=prod,ver=1
+bandicoot-prod 	   10.115.242.3 	... 8080/TCP 		... app=bandicoot,env=prod,ver=2
+kubernetes 		   10.115.240.1     ... 443/TCP 		... <none>
+
+
+
+#------------------------------------------#
+#			Service Discovery 		       #	
+#------------------------------------------#
+
+Kubernetes have 2 ways for pods to find addresses of the other (Service Discovery):
+- Through Environment variables (like --link of Docker API)
+- Through K8s DNS
+	|
+	+--> DNS server watches K8s for new Service creation -> create set of records for each Service
+			|
+			+--> In same namespace: Pods can talk to each other
+			+--> In different namespace: Pods can use <service_name>.<namespace> in DNS path
+
+Reference: Youtube "Kubernetes Webinar Series - Understanding Service Discovery"
+

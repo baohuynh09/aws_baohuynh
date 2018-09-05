@@ -1,3 +1,4 @@
 .terraform
 *.tfstate
 *.tfstate.backup
+chotot_assignment_BaoHuynh.tar.gz

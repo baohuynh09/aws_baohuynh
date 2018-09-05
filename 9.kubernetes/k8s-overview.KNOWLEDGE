@@ -1,0 +1,132 @@
+/usr/bin/env bash
+#------------------------------------------ #
+#               MASTER NODE                 #
+#------------------------------------------ #
+Master nodes
+|
++--> 1.kube-APIserver (validates and configures data for the api objects - pods, services, deployments, ...)
++--> 2.kube-controller-manager (watches the shared-state among cluster & make changes to cluster => have the desired-state)
+|       |
+|       +--> replication controller
+|       +--> endpoints controller
+|       +--> namespace controller
+|       +--> serviceaccount controller
++--> 3.kube-scheduler (watches for unscheduled pods and binds them to nodes via the /binding pod subresource API)
+
+Reference & examples: https://medium.com/jorgeacetozi/kubernetes-master-components-etcd-api-server-controller-manager-and-scheduler-3a0179fc8186
+
+
+#------------------------------------------ #
+#               WORKER NODE                 #
+#------------------------------------------ #
+NODE: worker machine (VM or physical one). Run at least:
+        |
+        +--> Container
+        +--> Kubelet (a bridge between the Master and the Nodes)
+Reference: picture/node_overview.png
+
+#------------------------------------------ #
+#                   POD                     #
+#------------------------------------------ #
+POD: a group of one or more containers
+Note: Containers should only be scheduled together in "a single Pod" if they are tightly coupled and need to share resources like below:
+        |
+        +--> Shared storage volume
+        +--> A unique 'internal' cluster IP
+Reference: picture/pod_overview.png
+
+
+#------------------------------------------ #
+#               SERVICES                    #
+#------------------------------------------ #
+Service: an abstraction layer, defines a logical set of Pods 
+         |--> enables external traffic exposure, load balancing and service discovery for those Pods.
+
+Expose services: 
+        |
+        +--> NodePort: exposes the Service on the same port on each Node of the cluster 
+        |              using NAT (only available when Node have Public IP)
+        +--> LoadBalancer: provides a public IP address 
+
+Responsibilities:
+        |
+        +--> Load Balancing traffic for pods inside that Services
+        |
+        +--> Responsible for Service-Discovery in cluster. 
+
+                                +----------+       
+             Ex: fontend-web <--|--Traffic-|--> backend-web 
+                                +----------+       
+                           (using service-discovery)
+                           (although Pods located on)
+                           (   different Nodes     )
+
+#------------------------------------------------#
+#         GROUPING PODS (SELECTOR)               #
+#    1. Put 'Labels' with POD                    #
+#    2. Put 'Label Selector' with DEPLOYMENT     #
+#------------------------------------------------#
+'Labels'         : are key/value pairs that are attached to objects (Pod)
+'Label Selector' : grouping primitive, group set of Pod base on Label (Deployment)
+
+    +-------+          +----------------+
+    | Lable | <======> | Label Selector |
+    +-------+          +----------------+
+      (POD)               (DEPLOYMENT)
+#------------------------------------------ #
+#               K8S PROXY                   #
+#            (kubectl proxy)                #
+#------------------------------------------ #
+- Pods are running in an isolated, private network 
+- Then, need proxy to access them for debug/get info (create a gateway btw Master APIserver & localhost)
+- All incoming data enters through one port and gets forwarded to the remote kubernetes API Server port, except for the path matching the static content path.
+--> kubectl proxy >>> "Starting to serve on 127.0.0.1:8001" 
+
+Get info:
+curl http://localhost:8001/api/v1/namespaces/default/pods/$POD_NAME/proxy/ (get output of app container)
+
+#------------------------------------------ #
+#               SCALING                     #
+#          ( kubectl scale .... )           #
+#------------------------------------------ #
+Ex: kubectl scale deployments/kubernetes-bootcamp --replicas=4
+
+- K8S supports Autoscaling (?)
+- Scaling : change number of replicas in Deployment.
+
+
+#------------------------------------------ #
+#               ROLLING UPDATES             #
+#          ( kubectl set image... )         #
+#------------------------------------------ #
+- Update POD one by one => avoid downtime of application
+- Support roll-back to previous one (stable)
+- Use case: updates with new image/release then roll-back to previous one
+   | 
+   +--> kubectl set image deployments/kubernetes-bootcamp   kubernetes-bootcamp=jocatalin/kubernetes-bootcamp:v2
+   |                   |----------V------------------|                       |------------V-----------------|
+   |                         <deployment_name>                                    <name_of_new_image>
+   |
+   +--> kubectl rollout status deployments/kubernetes-bootcamp
+   |        >>> deployment "kubernetes-bootcamp" successfully rolled out (VERIFICATION)
+   |
+   |
+   +--> kubectl rollout undo deployments/kubernetes-bootcamp
+                             |-------------V---------------|
+                                    <deployment_name>
+
+Note: If a Deployment is exposed publicly, during an update, the network traffic will be routed
+      to available PODS (both NEW and OLD)
+
+
+
+
+
+
+
+
+
+
+
+
+
