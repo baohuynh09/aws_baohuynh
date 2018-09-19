@@ -15,16 +15,19 @@ kops delete cluster --name=${CHOTOT_CLUSTER_NAME} --yes
 "-----------------------------------------------------"
 
 #Create bucket to store state of KOPS
-aws s3api create-bucket --bucket ${bucket_name} --create-bucket-configuration LocationConstraint=us-west-2
-aws s3api put-bucket-versioning --bucket ${bucket_name} --versioning-configuration Status=Enabled
+aws s3api create-bucket --bucket ${bucket_name} --create-bucket-configuration LocationConstraint=us-west-2 --region=us-west-2
+aws s3api put-bucket-versioning --bucket ${bucket_name} --versioning-configuration Status=Enabled --region=us-west-2
 
-"-----------------------------------------------------"
-"   Deployment cluster using Kubernetes        "
-"-----------------------------------------------------"
+"---------------------------------------------------"
+"          Deployment cluster using KOPS            "
+"---------------------------------------------------"
 kops create cluster \
 --cloud=aws --zones=us-west-2a \
 --node-count=3 \
---node-size=t2.micro --master-size=t2.micro \
+--node-size=t2.micro \
+--node-volume-size=8 \
+--master-size=t2.micro \
+--master-volume-size=8 \
 --dns-zone=${CHOTOT_DNS_ZONE} --dns private \
 --name=${CHOTOT_CLUSTER_NAME}
 
@@ -33,6 +36,9 @@ kops edit cluster --name ${CHOTOT_CLUSTER_NAME}
 
 #Actually deploy
 kops update cluster --name ${CHOTOT_CLUSTER_NAME} --yes
+
+#Update param to cluster
+kops rolling-update cluster --name ${CHOTOT_CLUSTER_NAME}
 
 # Delete the whole stack
 kops delete cluster --name=${CHOTOT_CLUSTER_NAME} --yes
@@ -45,12 +51,12 @@ Note: if --dns public : FAIL as not registered any domain on public DNS (like go
 "-----------------------------------------------------"
 kubectl run sample-nginx --image=nginx --replicas=2 --port=80
 
-kubectl | get        | node
-        | describe   | pods -o yaml
-        |            | rs
-        |            | deployments
-        |            | services
-		|            | cluster
+kubectl | get        | node          | 
+        | describe   | pods -o yaml  |
+        |            | rs            |  --all-namespaces
+        |            | deployments   | 
+        |            | services      |
+        |            | cluster       |
 
 
 kubectl |            | node
@@ -58,7 +64,7 @@ kubectl |            | node
         | logs       | rs
         | delete     | deployment
         |            | services -o wide
-		|            | cluster
+        |            | cluster
 
 # Find the master hostname by:
 kubectl cluster-info
@@ -115,7 +121,9 @@ Notice: clone the latest etcd-operator repo  (https://github.com/coreos/etcd-ope
 + cd <clone_repo>/example/rbac/
 + ./create_role
 
-# Install etcd-operator & etcd-cluster
+#-----------------------------------------#
+#  Install etcd-operator & etcd-cluster   #
+#-----------------------------------------#
 + Install etcd-operator:
   kubectl create -f example/deployment.yaml
 + Check if CRD is registered (Custom Resource Definition):
@@ -125,7 +133,9 @@ Notice: clone the latest etcd-operator repo  (https://github.com/coreos/etcd-ope
 + Get pods to check if it's ok:
   kubectl get pods
 
-# Get Endpoint of etcd on each host
+#-----------------------------------------#
+#   Get Endpoint of etcd on each host     #
+#-----------------------------------------#
 + kb get services
 + kb describe services example-etcd-cluster
 Ex:  100.96.1.15:2379,100.96.2.13:2379,100.96.2.14:2379
@@ -141,7 +151,9 @@ https://install.portworx.com/1.4/
  + Delete portworx deployment:
   kubectl delete -f <px_spec>
   
-# Create template volume (vol-0db5187885f23a56f)
+#------------------------------------------------#
+# Create template volume (vol-0db5187885f23a56f) #
+#------------------------------------------------#
 + export VOLUMEID=$(aws ec2 create-volume \
   --size 20 \
   --volume-type gp2 \
@@ -150,7 +162,9 @@ https://install.portworx.com/1.4/
   --output text \
   --query 'VolumeId')
   
-# Create a replicated volume for mysql
+#-----------------------------------------#
+# Create a replicated volume for mysql    #
+#-----------------------------------------#
 + ssh admin@ip-172-20-42-59.us-west-2.compute.internal  \
   sudo /opt/pwx/bin/pxctl volume create \
   --size=5 \
@@ -158,3 +172,12 @@ https://install.portworx.com/1.4/
   --fs=ext4 \
   mysql-disk
 
+
+  
+#-----------------------------------------#
+#           TO-DO-INVESTIGATION           #
+#-----------------------------------------#
+- Do the auto-scaling with K8S
+- Not use the LoabBalancer Type, expose NodePort (with Node can be access from internet)  
+  
+  

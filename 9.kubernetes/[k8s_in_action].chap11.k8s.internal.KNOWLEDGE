@@ -1,0 +1,31 @@
+
+#-------------------------------------------#
+#     COMPONENTS OF THE CONTROL PLANE       #
+#-------------------------------------------#
+The Control Plane: what controls and makes the whole cluster function, including:
+    |
+    +--> The etcd distributed persistent storage
+    +--> The API server
+    +--> The Scheduler
+    +--> The Controller Manager
+
+
+#-------------------------------------------#
+#  COMPONENTS RUNNING ON THE WORKER NODES   #
+#-------------------------------------------#
+The task of running your containers isup to the components running on each
+worker node:
+    |
+    +--> The Kubelet
+    +--> The Kubernetes Service Proxy (kube-proxy)
+    +--> The Container Runtime (Docker,...)
+
+#-------------------------------------------#
+#           ADD-ON COMPONENTS               #
+#-------------------------------------------#
+- The Kubernetes DNS server
+- The Dashboard
+- An Ingress controller
+- Heapster
+- The Container Network Interface network plugin (we’ll explain it later in this
+- chapter)

@@ -1,0 +1,12 @@
+
+- KAFKA: central hub for sharing everything
+- producer: an application that sends data to Kafka
+- Consumer: an application that request & receive data from Kafka
+- Broker:  Kafka server
+- Cluster: Group of computers
+- Topic:   A name for a Kafka stream
+- Partition: Part of a topic (usually store on a seperate computer)
+- Offset: Unique id for a message within a partiition
+- Consumer groups: a group of consumers acting as a single logical unit
+
+

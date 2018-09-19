@@ -8,10 +8,8 @@ kubectl --namespace kube-system describe pods portworx-25dhw
 kubectl --namespace kube-system get pods portworx-25dhw -o yaml
 
 
-		
+        
 aws efs create-file-system --creation-token $(uuid)    
-
-
 -----
 {
     "SizeInBytes": {
@@ -53,19 +51,19 @@ aws ec2 authorize-security-group-ingress --group-id sg-04b62fc4af711d0e3 --proto
 
 + vi efs-provisioner.yaml --> 
     roleRef:
-	 kind: ClusterRole
-	 #name: efs-provisioner-runner <-- this one does not have permission 
-	 #								 to get endpoint in name space kube-system
-	 name: cluster-admin   
+     kind: ClusterRole
+     #name: efs-provisioner-runner <-- this one does not have permission 
+     #                               to get endpoint in name space kube-system
+     name: cluster-admin   
 
 + kubectl apply -f efs-provisioner.yaml
 + kubectl get pvc   
   --> efs STATUS is Bound -> ok
 
 
-"-----------------------------------------------"
-"                SECOND EFS						"
-"-----------------------------------------------"
+#-----------------------------------------------#
+#                SECOND EFS                     #
+#-----------------------------------------------#
 aws efs create-file-system --creation-token $(uuid)
 {
     "SizeInBytes": {
@@ -100,10 +98,9 @@ aws efs create-file-system --creation-token $(uuid)
 
 + aws ec2 authorize-security-group-ingress --group-id sg-04b62fc4af711d0e3 --protocol tcp --port 2049 --source-group sg-04b62fc4af711d0e3 --group-owner 495627566033
 
-
-
-
-"-------------INGRESS---------------"
+#---------------------------------------#
+#               INGRESS                 #
+#---------------------------------------#
 kb create -f install/common/ns-and-sa.yaml
 kb create -f install/common/default-server-secret.yaml
 kb create -f install/common/nginx-config.yaml
@@ -128,16 +125,34 @@ kubectl create -f default-backend.yaml
 kubectl create -f nginx-ingress-controller.yaml  
                  This will create a deployment whose pods will have the ports 80 and 443 open for http and https respectively. 
 kubectl create -f nginx-controller-service.yaml
-					This expose this deployment so that it will have External IP through which users will connect to our app
+#This expose this deployment so that it will have External IP through which users will connect to our app
 kubectl apply -f nginx-contoller-patch.yaml
 kubectl get pods --namespace=ingress-nginx-config
-
-
-
-
-
-
 kubectl exec my-nginx-3800858182-jr4a2 -- printenv | grep SERVICE
 kubectl get nodes -o yaml | grep ExternalIP -C 1
 kubectl get pods -o yaml | grep podIP
 
+
+
+#---------------------------------------#
+#         COMMON DEBUGGING CLI          #
+#---------------------------------------#
+
+# Check the status of control plan (master node)
+kubectl get componentstatuses
+
+# Get ALL pods/deployement/services/nodes
+kb get ingress,nodes,pods,services,deployments --all-namespaces
+kb get all --all-namespaces
+
+# Attach to container for system hands-on
+kubectl exec -it <pod_name> bash --namespace=<name_space>
+Ex: kubectl exec -it  nginx-ingress-89f96847c-vpjvf bash --namespace=nginx-ingress
+    kubectl exec my-nginx-3800858182-jr4a2 -- printenv | grep SERVICE
+
+# Export information about pods/deployment/services/nodes into YAML,JSON,...
+kubectl get nodes -o yaml | grep ExternalIP -C 1
+kubectl get pods -o yaml | grep podIP
+
+# Export information with COLUMN Customization
+kubectl get po -o custom-columns=POD:metadata.name,NODE:spec.nodeName --sort-by spec.nodeName -n kube-system
