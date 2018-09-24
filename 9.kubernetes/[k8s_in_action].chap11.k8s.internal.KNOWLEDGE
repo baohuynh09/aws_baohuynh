@@ -29,3 +29,128 @@ worker node:
 - Heapster
 - The Container Network Interface network plugin (we’ll explain it later in this
 - chapter)
+
+
+#-------------------------------------------#
+#        SIMPLE NETWORK BTW PODS            #
+#-------------------------------------------#
+Simple topology of pod communication:
+- package are sent directyly from pod.a -> pod.b without package conversion (no NAT)
+
+    +-------------------------------+      +----------------------------+
+    | +--------------+              |      |           +--------------+ |
+    | |    POD A     |              |      |           |    POD B     | |
+    | | IP: 10.1.1.1 |              |      |           | IP: 10.1.2.1 | |
+    | +--------------+              |      |           +--------------+ |
+    |         |                     |      |                     ^      |
+    |         |                     |      | +-----------------+ |      |
+    |         | +-----------------+ |      | | srcIP: 10.1.1.1 |<<<-----------     No NAT
+    |         | | srcIP: 10.1.1.1 | |      | | dstIP: 10.1.2.1 | |      |     (IPs are preserved)
+    |         | | dstIP: 10.1.2.1 | |      | +-----------------+ |      |
+    |         | +-----------------+ |      |                     |      |
+    |         |                     |      |                     |      |
+    +-------------------------------+      +----------------------------+
+              |                                                  |
+              v                                                  |
+         +-------------------------------------------------------+---+
+         |               NETWORK (Packet travel)                     |
+         +-----------------------------------------------------------+
+                            +-----------------+
+                            | srcIP: 10.1.1.1 |
+                            | dstIP: 10.1.2.1 |
+                            +-----------------+
+    
+                        
+#-------------------------------------------#
+#        PODS TALK IN THE SAME NODE         #
+#-------------------------------------------#
+In the same node:
+- Whenever pod is created, veth (virtual ethernet) pair will be born also 
+  ( eth0@xyz123: endpoint in the container
+  	veth1234567: endpoint at the host machine )
+- Pod --> bridge communication: via veth (IP of Pod.A in same subnet of bridge 10.1.0.x/24)
+- All pod in same node are connected to the same Network Bridge (cbr0)
+  >>> enable the communication btw pods.
+- Packet travels:
+  pod.A --> veth of pod.A --> Bridge (named: cbr0) <-- veth of pod.B <-- pod.B
+
+   +----------------------------------------------------------------------------------+
+   |                                                             NODE PHYSICAL        |
+   |  +----------------------+                                                        |
+   |  | POD A                |   (This is pod                                         |
+   |  |    +------------+    |   A's veth pair)   +-----------+                       |
+   |  |    |    eth0    +------------------------>| veth|123  +---+                   |
+   |  |    |  10.1.1.1  |    |                    +-----------+   |                   |
+   |  |    +------------+    |                                    |  +-------------+  |
+   |  +----------------------+                                    |  |  BRIDGE     |  |
+   |                                                              +->|  10.1.1.0/24|  |
+   |  +----------------------+                                    |  +-------------+  |
+   |  | POD B                |                                    |                   |
+   |  |    +------------+    |                    +-----------+   |                   |
+   |  |    |    eth0    +------------------------>| veth|234  +---+                   |
+   |  |    |  10.1.1.2  |    |   (This is pod's   +-----------+                       |
+   |  |    +------------+    |    B veth pair)                                        |
+   |  +----------------------+                                                        |
+   +----------------------------------------------------------------------------------+
+
+#-------------------------------------------#
+#    PODS TALK ON THE DIFFERENT NODE        #
+#-------------------------------------------#
+On different nodes, how pods talk:
+- Using the same model of 'same node' above
+- Another component is added (eth0-physical NIC on host)
+  ==> for communication on the same sub-network
+
+   +-----------------------------------------------------------------+
+   |                                                 NODE PHYSICAL 1 |
+   |  +----------------------+                                       |
+   |  | POD A                |                                       |
+   |  |    +------------+    |   +-----------+                       |
+   |  |    |    eth0    +------->| veth|123  +---+                   |
+   |  |    |  10.1.1.1  |    |   +-----------+   |                   |
+   |  |    +------------+    |                   |  +-------------+  |
+   |  +----------------------+                   |  |  BRIDGE     |  |
+   |                                             +->|  10.1.1.0/24|  |
+   |  +----------------------+                   |  +------+-------+ |
+   |  | POD B                |                   |         |         |
+   |  |    +------------+    |   +-----------+   |         |         |
+   |  |    |    eth0    +------->| veth|234  +---+   +-----V------+  |
+   |  |    |  10.1.1.2  |    |   +-----------+       | eth0 (host)|  |
+   |  |    +------------+    |                       | 10.100.0.1 |  |
+   |  +----------------------+                       +-----V------+  |
+   +-------------------------------------------------------|---------+
+                                                           |
+                                                           |
+   +-------------------------------------------------------|---------+
+   |                                                       |         |
+   |  +----------------------+                        +----v-------+ |
+   |  | POD A                |                        | eth0 (host)| |
+   |  |    +------------+    |   +-----------+        | 10.100.0.2 | |
+   |  |    |    eth0    +------->| veth|345  +---+    +----v-------+ |
+   |  |    |  10.1.2.1  |    |   +-----------+   |         |         |
+   |  |    +------------+    |                   |  +------v------+  |
+   |  +----------------------+                   |  |  BRIDGE     |  |
+   |                                             +->|  10.1.2.0/24|  |
+   |  +----------------------+                   |  +-------------+  |
+   |  | POD B                |                   |                   |
+   |  |    +------------+    |   +-----------+   |                   |
+   |  |    |    eth0    +------->| veth|456  +---+                   |
+   |  |    |  10.1.2.2  |    |   +-----------+                       |
+   |  |    +------------+    |                                       |
+   |  +----------------------+                       NODE PHYSICAL 2 |
+   +-----------------------------------------------------------------+
+   
+Note: 
+
+This implementation is available for network without "Router" in between.
+
+Reason: k8s use NAT-less for network package travels
+        --> Router cant find IP destion on the internet (as its the Pod's IP)
+Solution: 
+		1.use Software Define Network (SDN)--> encapsulate the package 
+		  + add new layer of dest.IP for package travelling.
+		2.Use Container Network Interface (CNI) plugins
+		  Flannel
+		  Weave Net,...
+		  
+

@@ -150,9 +150,15 @@ kubectl exec -it <pod_name> bash --namespace=<name_space>
 Ex: kubectl exec -it  nginx-ingress-89f96847c-vpjvf bash --namespace=nginx-ingress
     kubectl exec my-nginx-3800858182-jr4a2 -- printenv | grep SERVICE
 
+# Copy file inside container
+kubectl cp <pod-name>:/path_to_remote_file /path_to_local_file
+
 # Export information about pods/deployment/services/nodes into YAML,JSON,...
 kubectl get nodes -o yaml | grep ExternalIP -C 1
 kubectl get pods -o yaml | grep podIP
 
 # Export information with COLUMN Customization
 kubectl get po -o custom-columns=POD:metadata.name,NODE:spec.nodeName --sort-by spec.nodeName -n kube-system
+
+# View resource usage on each pod/node
+kb top pods/nodes

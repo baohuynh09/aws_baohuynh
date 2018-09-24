@@ -1,0 +1,109 @@
+#-----------------------------------#
+#              AGENDA               #
+#-----------------------------------#
+1. Pods
+    |
+    +--> Pod deployment with kubectl/manifest (with yaml)
+    +--> Liveness determines if an application is running properly
+    |        +--> Containers that fail liveness checks are restarted
+    +--> Readiness describes when a container is ready to serve user requests.
+    |        +--> Containers that fail readiness checks are removed from service load balancers.
+    +--> Resource control/limitation (define in yaml)
+    +--> Persisten Data-storage (local/remote)
+
+    DEMO: Health-check aliveness (DEMO ALIVENESS)
+
+2. Labels & Annotation
+    |
+    +--> Labels: are key/value pairs that can be attached to Kubernetes objects (Pods/Deployment)
+    |
+    +--> Annotations: used to hold configuration data for external tools
+                      (like third-party schedulers and monitoring tools )
+         Ex:
+            kind: PersistentVolumeClaim
+            apiVersion: v1
+            metadata:
+              name: efs
+                annotations:
+                    volume.beta.kubernetes.io/storage-class: "aws-efs"
+
+
+
+3. Replication Controller/ReplicaSets/Deployment
+   Replication Controller: - original form of replication in K8S
+   ReplicaSets:            - same as rc, except for addtional features:
+                                    "selector" for pods.
+                                    "rolling update" only work for Replication Controller.
+
+   Deployment: - Type of replicaton backed by ReplicaSets (checked by kb describe deployment abc-xyz)
+                    >>> name of pods in deployment have prefix, which is name of replicaSets.
+               - Also could do "rolling update" like rc.
+
+4. Service
+
+
+5. ConfigMap and Secrets
+
+
+6. Beyond the basics (underlay network)
+Pod communication simple topolgy
+Pod communication in the same node
+Pod communication in different node (in the same K8S cluster)
+Pod communication in different node (outside K8S cluster)
+
+7. Auto-scaling with Kubernetes
+- Vertical is not available yet in K8S.
+- Using horizontal pod autoscaling (HPA), requires 'Heapster' pod.
+  Otherwise, scaling will not run.
+
+Ex: kubectl autoscale rs kuard --min=2 --max=5 --cpu-percent=80
+- Not only CPU/RAM but also other custome metrics with >= autoscaling/v2beta2 (via custom.metrics.k8s.io on metrics-server)
+Note: from K8s 1.11: heapster is replaced by metrics-server (https://github.com/kubernetes-incubator/metrics-server)
+
+
+#-----------------------------------#
+#        DEBUGGING EXAMPLE 1        #
+#-----------------------------------#
+mysql-deployment.yaml --> replicas:2
+step1: check persistent volume
+    kubectl get pv
+    kubectl describe pv abc-xyz-123
+    -> OK
+step2: check pods
+    kubectl get pods
+    kubectl logs <pod_of_mysql_deployment>
+    kubectl describe pods <pod_of_mysql_deployment>
+    -> check event summary
+Events:
+  Type     Reason                 Age                 From                                                 Message
+  ----     ------                 ----                ----                                                 -------
+  Normal   Scheduled              25m                 default-scheduler                                    Successfully assigned wordpress-mysql-bcc89f687-qgbzn to ip-172-20-37-15.us-west-2.compute.internal
+  Warning  FailedAttachVolume     25m                 attachdetach-controller                              Multi-Attach error for volume "pvc-485dce49-bfce-11e8-b441-0274684fa3a6" Volume is already used by pod(s) wordpress-mysql-bcc89f687-hl9bd
+  Normal   SuccessfulMountVolume  25m                 kubelet, ip-172-20-37-15.us-west-2.compute.internal  MountVolume.SetUp succeeded for volume "default-token-nr7zn"
+  Warning  FailedMount            54s (x11 over 23m)  kubelet, ip-172-20-37-15.us-west-2.compute.internal  Unable to mount volumes for pod "wordpress-mysql-bcc89f687-qgbzn_default(cad08a74-bfcf-11e8-b441-0274684fa3a6)": timeout expired waiting for volumes to attach or mount for pod "default"/"wordpress-mysql-bcc89f687-qgbzn". list of unmounted volumes=[mysql-persistent-storage]. list of unattached volumes=[mysql-persistent-storage default-token-nr7zn]
+
+#-------------------------------------------#
+#  DEMO NETWORK THROUGHPUT BTW NAMESPACES   #
+#-------------------------------------------#
++ namespace=default
+    container: rastasheep/ubuntu-sshd:12.04
++ namespace=DEMO
+    container: rastasheep/ubuntu-sshd:12.04
+---
+DEMO
+    Ex: kb describe pod <pod_name>
+            --> get clusterIP of cont.B
+        attach to cont.A (kb exec -it...) & ssh to clusterIP of cont.B
+            --> OK !
+CONCLUSION: cont.A (namespace:'default') still ssh to clusterIP of cont.B in namespace 'DEMO'
+            although cont.A & cont.B are in different namespace (network)
+#-----------------------------------#
+#          DEMO ALIVENESS           #
+#-----------------------------------#
++ kb create -f sec1_kuard_pod_health.yaml
++ kb port-forward kuard 8080:8080 (expose container through port-forwarding)
++ ssh -L 12345:localhost:8080 root@<kubectl_machines> (ssh forwarding for web browser)
++ open chrome -> localhost:12345 for 'kuard control dashboard'
++ Click “Liveness Probe” tab --> list of all probes that instance of kuard has received.
++ Click the “fail” link on that page --> kuard will start to fail health checks.
++ Check again in "kb describe log kuard" --> we'll see K8S killed & restarted failed container.

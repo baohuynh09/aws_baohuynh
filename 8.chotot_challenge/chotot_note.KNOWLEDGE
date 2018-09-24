@@ -23,11 +23,11 @@ aws s3api put-bucket-versioning --bucket ${bucket_name} --versioning-configurati
 "---------------------------------------------------"
 kops create cluster \
 --cloud=aws --zones=us-west-2a \
---node-count=3 \
+--node-count=2 \
 --node-size=t2.micro \
---node-volume-size=8 \
+--node-volume-size=5 \
 --master-size=t2.micro \
---master-volume-size=8 \
+--master-volume-size=5 \
 --dns-zone=${CHOTOT_DNS_ZONE} --dns private \
 --name=${CHOTOT_CLUSTER_NAME}
 
@@ -51,11 +51,11 @@ Note: if --dns public : FAIL as not registered any domain on public DNS (like go
 "-----------------------------------------------------"
 kubectl run sample-nginx --image=nginx --replicas=2 --port=80
 
-kubectl | get        | node          | 
+kubectl | get        | node          | --all-namespaces
         | describe   | pods -o yaml  |
-        |            | rs            |  --all-namespaces
-        |            | deployments   | 
-        |            | services      |
+        |            | rs            | --show-labels (for 'get' option only)
+        |            | deployments   |  -L <name_of_a_label> (for 'get' option only) 
+        |            | services      | --selector=<label_name>
         |            | cluster       |
 
 
