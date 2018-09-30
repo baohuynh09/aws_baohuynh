@@ -1,0 +1,201 @@
+
+#-------------------------------------------#
+#           K8S AUTHENTICATION MODEL        #
+#-------------------------------------------#
+         ___________________         ________          ____________ 
+        |   ServiceAccount  | <---> |  Token | <----> | API Server |
+        |___________________|       |________|        |____________|
+          (defined at POD)                        (authenticate via RBAC plugin)
+                ^
+                |
+                |
+                V
+         __________________________
+        |                          |
+        |                          |
+        V                          V
+    _____________        ______________________
+   |    Role/    |      |     RoleBinding/     |
+   | ClusterRole |      | ClusterRoleBinding   |
+   |_____________|      |______________________|
+    (what-to-do)             (who-will-do) 
+   (Ex: HTTP request
+  GET,POST,PUSH,DELETE,..)
+
+#-------------------------------------------#
+#          SERVICE-ACCOUNT (POD)            #
+#-------------------------------------------#
+APIServer verify request by authentication by means of plugins
+(through cmdline-option when started API server)
+
+ServiceAccount 'token' mounted into pod's container
+(/var/run/secrets/kubernetes.io/serviceaccount/token)
+--> authenticate with API server when pod perform operation.
+
++ A default ServiceAccount is automatically created
+for each namespace. (Ex: kubectl get sa)
++ Each pod have only ONE ServiceAccount.
+  Multi-pod can have same ServiceAccount.
+
+#-------------------------------------------#
+#     RBAC (Role-based access control)      #
+#     (plug-in authenticate at APIServer)   #
+#-------------------------------------------#
+Roles define 'what' can be done 
+Bindings define 'who' can do it
+
++ Role: manage 'namespaced resource'
++ ClusterRole: manage 'cluster-level resource'
+
+#-------------------------------------------#
+#               DEMO RBAC #1                # 
+#            (Role & RoleBinding)           #
+#            *For Namespace-level*          #
+#-------------------------------------------#
+# Create 2 pod in 2 different namespace
+$ kubectl create ns foo
+$ kubectl run test-foo --image=luksa/kubectl-proxy -n foo
+$ kubectl create ns bar
+$ kubectl run test-bar --image=luksa/kubectl-proxy -n bar
+
+# Login to 1 pod & try listing cluster'status (via API server)
+kubectl exec -it <test_foo_pod> -n foo "curl localhost:8001/api/v1/namespaces/foo/services"
+--> failed because of RBAC authentication
+(Note: localhost:8001 --> kubectl proxy process is listening)
+
+
+# Creating a role
+kubectl create -f service-reader.yaml -n foo
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+namespace: foo
+name: service-reader
+rules:
+- apiGroups: [""]
+verbs: ["get", "list"]
+resources: ["services"]
+
+# Bind a role to ServiceAccount:
+kubectl create rolebinding test --role=service-reader \
+--serviceaccount=foo:default -n foo
+                 \_________/
+                      V
+                (default ServiceAccount
+                 in foo namespace)
+
+# Check listing cluster'status via APIServer again:
+kubectl exec -it <test_foo_pod> -n foo "curl localhost:8001/api/v1/namespaces/foo/services" 
+>>> Success !
+
+#-------------------------------------------#
+#    Why ClusterRole & ClusterRoleBinding   #
+#-------------------------------------------#
+Why:
+- Manage same Role in many different namespaces (avoid repeatation)
+- Grant permission 4 some special resource
+                            |
+                            +--> non-resource URLs at APIServer 
+                            |    (/healthz,..)  
+                            |         >>> default: "system:discovery" ClusterRole
+                            +--> non-namespaced resource (Nodes, 
+                            |    PersistentVolumes, Namespaces,..)
+                            |         >>> default: "view" ClusterRole
+Note:   
+# list all non-resource URL that can be accessesd via "system:discovery" ClusterRole:
+kubectl get clusterrole system:discovery -o yaml
+# list all cluster-level resrouce that can be accessesd via "view" ClusterRole:
+kubectl get clusterrole view -o yaml
+------------
+rules:
+- apiGroups:
+- ""
+resources:                             _
+- configmaps                            |
+- endpoints                             |
+- persistentvolumeclaims                |
+- pods                                  | >>> Resource can be
+- replicationcontrollers                | >>> accessible
+- replicationcontrollers/scale          |
+- serviceaccounts                       |
+- services                             _|
+verbs:
+- get                                 --+
+- list                                  | >>> Action can be 
+- watch                                 | >>> Performed
+...                                   --+
+
+#-------------------------------------------#
+#             DEMO RBAC #2                  #
+#     (ClusterRole & ClusterRoleBinding)    #
+#         *For cluster-level-resource*      #
+#-------------------------------------------#
+
+# Before Bindings
+@<foo_test_pod>: #curl localhost:8001/api/v1/persistentvolumes
+--> Failed !
+
+# Create ClusterRle for get/list PersistentVolumes at cluster-level
+kubectl create clusterrole pv-reader --verb=get,list \
+--resource=persistentvolumes
+
+# Create a ClusterRoleBinding for ServiceAccount(default) in namespace(foo)
+kubectl create clusterrolebinding pv-test --clusterrole=pv-reader \
+--serviceaccount=foo:default
+
+#After Bindings:
+@<foo_test_pod>: #curl localhost:8001/api/v1/persistentvolumes
+--> Success !
+
+#-------------------------------------------#
+#             DEMO RBAC #3                  #
+#     (ClusterRole & ClusterRoleBinding)    #
+#         *For 'foo' namespaces*            #
+#-------------------------------------------#
+
+#delete the old one
+kubectl delete clusterrolebinding view-test
+
+# Create RoleBinding(view-test) from ClusterRole(view) 
+# && assign to ServiceAccount(default) at namespace(foo)
+kubectl create rolebinding view-test --clusterrole=view  \
+--serviceaccount=foo:default -n foo
+
+# After Bindings:
++ List pods in 'foo'
+@<foo_test_pod>: # curl localhost:8001/api/v1/namespaces/foo/pods >>> OK
++ List pods in 'bar'
+@<foo_test_pod>: # curl localhost:8001/api/v1/namespaces/bar/pods >>> FAILED 
++ List pods in all namespaces
+@<foo_test_pod>: # curl localhost:8001/api/v1/pods                >>> FAILED
+
+
+#-------------------------------------------#
+#             DEMO RBAC #4                  #
+#     (ClusterRole & ClusterRoleBinding)    #
+#           *For all namespaces*            #
+#-------------------------------------------#
+
+# Before bindings
+@<foo_test_pod>: # curl localhost:8001/api/v1/pods
+@<foo_test_pod>: # curl localhost:8001/api/v1/namespaces/foo/pods
+--> both Failed (could not list pods at cluster scope/in foo namespace)
+
+# Create ClusterRoleBinding(view-test) from ClusterRole(view) 
+# && assign to ServiceAccount(default) at namespace(foo)
+kubectl create clusterrolebinding view-test --clusterrole=view \
+--serviceaccount=foo:default
+
+# After Bindings:
++ List pods in 'foo'
+@<foo_test_pod>: # curl localhost:8001/api/v1/namespaces/foo/pods >>> OK
++ List pods in 'bar'
+@<foo_test_pod>: # curl localhost:8001/api/v1/namespaces/bar/pods >>> OK 
++ List pods in all namespaces
+@<foo_test_pod>: # curl localhost:8001/api/v1/pods                >>> OK
+
+
+
+
+
