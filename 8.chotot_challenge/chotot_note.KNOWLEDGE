@@ -25,9 +25,9 @@ kops create cluster \
 --cloud=aws --zones=us-west-2a \
 --node-count=2 \
 --node-size=t2.micro \
---node-volume-size=5 \
+--node-volume-size=3 \
 --master-size=t2.micro \
---master-volume-size=5 \
+--master-volume-size=3 \
 --dns-zone=${CHOTOT_DNS_ZONE} --dns private \
 --name=${CHOTOT_CLUSTER_NAME}
 
@@ -177,7 +177,7 @@ https://install.portworx.com/1.4/
 #-----------------------------------------#
 #           TO-DO-INVESTIGATION           #
 #-----------------------------------------#
-- Do the auto-scaling with K8S
+- Kops problem when edit instancegroup 
 - Not use the LoabBalancer Type, expose NodePort (with Node can be access from internet)  
   
   

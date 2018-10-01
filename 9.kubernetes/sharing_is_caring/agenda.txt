@@ -43,7 +43,10 @@
 
 
 5. ConfigMap and Secrets
-
+ConfigMap: way to share variable between pods in different namespace
+  |
+  +--> via environment variable
+  +--> via file in /etc/ConfigMap
 
 6. Beyond the basics (underlay network)
 Pod communication simple topolgy
@@ -59,6 +62,18 @@ Pod communication in different node (outside K8S cluster)
 Ex: kubectl autoscale rs kuard --min=2 --max=5 --cpu-percent=80
 - Not only CPU/RAM but also other custome metrics with >= autoscaling/v2beta2 (via custom.metrics.k8s.io on metrics-server)
 Note: from K8s 1.11: heapster is replaced by metrics-server (https://github.com/kubernetes-incubator/metrics-server)
+
+8. Talks to APIServer
+- Downward API
+- Talk-to-APIServer: +--> from <kubectl_node>
+                     +--> from within a pod (using credentials inside pod)
+                     +--> from within a pod (with help from ambassador)
+
+8. Secure APIServer with RBAC (Role-based access control) & ServiceAccount
+- ServiceAccount (in POD)
+- Role(what-to-do) and RoleBinding(who-will-do) at namespace.
+- ClusterRole(what-to-do) and ClusterRoleBinding(who-will-do)
+  at cluster-level.
 
 
 #-----------------------------------#
