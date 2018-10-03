@@ -118,15 +118,3 @@ Ex: kubectl scale deployments/kubernetes-bootcamp --replicas=4
 Note: If a Deployment is exposed publicly, during an update, the network traffic will be routed
       to available PODS (both NEW and OLD)
 
-
-
-
-
-
-
-
-
-
-
-
-

@@ -21,6 +21,21 @@ aws s3api put-bucket-versioning --bucket ${bucket_name} --versioning-configurati
 "---------------------------------------------------"
 "          Deployment cluster using KOPS            "
 "---------------------------------------------------"
+
+# Minimum requirement for K8S cluster creation with Kops:
+# Master: 1 nodes (RootVolume: >= 8GB)
+# Nodes:  2 nodes (RootVolume: >= 8GB)
+# Otherwise, Kops won't create K8S cluster
+
+-----------
+# 1st time:
+#   kops create cluster ....
+#
+# 2nd time --> N-nd time 
+#   kops update cluster --name ${CHOTOT_CLUSTER_NAME}  (don't use create cluster anymore)
+#   kops edit instancegroup <nodes/master-us-west-2a>  (for resource modifcation)
+#   kops update cluster --name ${CHOTOT_CLUSTER_NAME} --yes
+
 kops create cluster \
 --cloud=aws --zones=us-west-2a \
 --node-count=2 \
@@ -172,12 +187,17 @@ https://install.portworx.com/1.4/
   --fs=ext4 \
   mysql-disk
 
-
-  
 #-----------------------------------------#
 #           TO-DO-INVESTIGATION           #
 #-----------------------------------------#
 - Kops problem when edit instancegroup 
 - Not use the LoabBalancer Type, expose NodePort (with Node can be access from internet)  
-  
-  
+
+
+apt-get update --yes
+apt-get install curl --yes
+apt-get install iputils-ping --yes
+apt-get install iproute2 --yes
+apt-get install net-tools --yes
+apt-get install traceroute --yes
+apt-get install iptables-persistent --yes

@@ -27,8 +27,6 @@
                 annotations:
                     volume.beta.kubernetes.io/storage-class: "aws-efs"
 
-
-
 3. Replication Controller/ReplicaSets/Deployment
    Replication Controller: - original form of replication in K8S
    ReplicaSets:            - same as rc, except for addtional features:
@@ -40,13 +38,21 @@
                - Also could do "rolling update" like rc.
 
 4. Service
+   |
+   +--> Act as intermediary for Pods to talks to each other
+   +--> 'Selectors' used for grouping Pods with matching Label.
+        Demo: Red,Green,Blue
+   +--> Expose connection to the outside world (NodePort, LoadBalancer) or closed (ClusterIP)
+   +--> Service Discovery
 
+   Note:
+   Endpoint: is a kind of object, that is the list of addresses (ip and port) of a Service.
 
 5. ConfigMap and Secrets
 ConfigMap: way to share variable between pods in different namespace
-  |
-  +--> via environment variable
-  +--> via file in /etc/ConfigMap
+   |
+   +--> via environment variable
+   +--> via file in /etc/ConfigMap
 
 6. Beyond the basics (underlay network)
 Pod communication simple topolgy
@@ -96,6 +102,26 @@ Events:
   Warning  FailedAttachVolume     25m                 attachdetach-controller                              Multi-Attach error for volume "pvc-485dce49-bfce-11e8-b441-0274684fa3a6" Volume is already used by pod(s) wordpress-mysql-bcc89f687-hl9bd
   Normal   SuccessfulMountVolume  25m                 kubelet, ip-172-20-37-15.us-west-2.compute.internal  MountVolume.SetUp succeeded for volume "default-token-nr7zn"
   Warning  FailedMount            54s (x11 over 23m)  kubelet, ip-172-20-37-15.us-west-2.compute.internal  Unable to mount volumes for pod "wordpress-mysql-bcc89f687-qgbzn_default(cad08a74-bfcf-11e8-b441-0274684fa3a6)": timeout expired waiting for volumes to attach or mount for pod "default"/"wordpress-mysql-bcc89f687-qgbzn". list of unmounted volumes=[mysql-persistent-storage]. list of unattached volumes=[mysql-persistent-storage default-token-nr7zn]
+
+#-----------------------------------#
+#        DEBUGGING EXAMPLE 2        #
+#-----------------------------------#
+Secnario:
+Step1: deploy standalone_architect/wordpress-deployment.yaml
+       --> Failed (containerNotStarted)
+Step2: debugging failure
+       kb logs <pod_name>        --> nothing much
+	   kb describe <pod_name>    --> found that missing mysql-pass secret
+Step3 (Fix): create mysql-pass secret
+       kubectl create secret generic mysql-pass --from-literal=password=ROOT_PASSWORD
+Step4: delete & recreate wordpress-deployment.yaml
+	   --> Still failure (CrashLoopback)
+Step5: kb describe <pod_name>    --> 'describe' this time doesn't help
+       kb logs <pod_name>        --> found that connection to mysql database is corrupted
+	                                 (mysqli::mysqli(): php_network_getaddresses: getaddrinfo failed:)
+Step6 (Fix):
+       deploy both mysql+wordpress
+	   --> OK now :)
 
 #-------------------------------------------#
 #  DEMO NETWORK THROUGHPUT BTW NAMESPACES   #

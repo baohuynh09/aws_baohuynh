@@ -3,7 +3,7 @@ Kubernetes are flexible & dynamic (Pod creation, delete, join, scale,...)
 --> Solution: SERVICE DISCOVERY
        |
 	   +--> which processes are listening
-	   +--> which address for which services
+	   +--> which address for those services
 
 'Service Object': way to create a named label sector
 
@@ -19,8 +19,6 @@ NAME 				CLUSTER-IP 		... PORT(S) 	 	... SELECTOR
 alpaca-prod		   10.115.245.13    ... 8080/TCP        ... app=alpaca,env=prod,ver=1
 bandicoot-prod 	   10.115.242.3 	... 8080/TCP 		... app=bandicoot,env=prod,ver=2
 kubernetes 		   10.115.240.1     ... 443/TCP 		... <none>
-
-
 
 #------------------------------------------#
 #			Service Discovery 		       #	
