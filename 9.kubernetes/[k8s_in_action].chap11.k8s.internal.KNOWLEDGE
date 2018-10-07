@@ -27,8 +27,7 @@ worker node:
 - The Dashboard
 - An Ingress controller
 - Heapster
-- The Container Network Interface network plugin (we’ll explain it later in this
-- chapter)
+- The Container Network Interface network plugin (we’ll explain it later in this chapter)
 
 #-------------------------------------------#
 #      CONTAINERS TALKS WITHIN A POD        #

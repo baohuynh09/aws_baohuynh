@@ -91,8 +91,6 @@ curl http://localhost:8001/api/v1/namespaces/default/pods/$POD_NAME/proxy/ (get 
 #------------------------------------------ #
 Ex: kubectl scale deployments/kubernetes-bootcamp --replicas=4
 
-- K8S supports Autoscaling (?)
-- Scaling : change number of replicas in Deployment.
 
 
 #------------------------------------------ #
@@ -103,18 +101,17 @@ Ex: kubectl scale deployments/kubernetes-bootcamp --replicas=4
 - Support roll-back to previous one (stable)
 - Use case: updates with new image/release then roll-back to previous one
    | 
-   +--> kubectl set image deployments/kubernetes-bootcamp   kubernetes-bootcamp=jocatalin/kubernetes-bootcamp:v2
-   |                   |----------V------------------|                       |------------V-----------------|
-   |                         <deployment_name>                                    <name_of_new_image>
+   +--> kubectl set image deployment/nginx-deployment   nginx-container=nginx:1.15.4
+   |                   |----------V------------------|  |-----V-------|  |----V------|
+   |                         <deployment_name>        <name_container>  <name_new_image>
    |
-   +--> kubectl rollout status deployments/kubernetes-bootcamp
+   +--> kubectl rollout status deployment/nginx-deployment
    |        >>> deployment "kubernetes-bootcamp" successfully rolled out (VERIFICATION)
    |
    |
-   +--> kubectl rollout undo deployments/kubernetes-bootcamp
-                             |-------------V---------------|
-                                    <deployment_name>
+   +--> kubectl rollout undo deployment/nginx-deployment
+                             |------------V------------|
+                                  <deployment_name>
 
-Note: If a Deployment is exposed publicly, during an update, the network traffic will be routed
-      to available PODS (both NEW and OLD)
+Note: If a Deployment is exposed publicly, during an update, the network traffic will be routed to available PODS (both NEW and OLD)
 

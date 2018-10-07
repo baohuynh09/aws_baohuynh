@@ -25,6 +25,7 @@ Requirement:
     +--> (3)grafana:  display metrics on dashboard for cluster administrator.
 
 (1)&(2): install via https://github.com/kubernetes/heapster.git 
+		 (kb create -f ./deploy/kube-config/rbac/heapster-rbac.yaml)
          (kb create -f ./deploy/kube-config/influxdb/)
 (2): open port 8086 for accessing to influxdb via cmdline.
 (3): open port 30081 on node host of grafana (security group)

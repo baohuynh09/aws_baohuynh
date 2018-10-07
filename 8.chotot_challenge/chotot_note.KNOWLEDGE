@@ -60,6 +60,10 @@ kops delete cluster --name=${CHOTOT_CLUSTER_NAME} --yes
 
 Note: if --dns public : FAIL as not registered any domain on public DNS (like google)
          --dns private: command in (*) must be execute in local private PVC machine
+		 
+"Create pass for mysql"
+kubectl create secret generic mysql-pass --from-literal=password=ROOT_PASSWORD
+
 
 "-----------------------------------------------------"
 "       Deployment containers on cluster              "
@@ -97,44 +101,6 @@ view:
 https://<kubernetes-master-hostname>/ui
 ------------------------------------------------------------
 
-<---- EXECUTE ON MASTER NODE ----->
-"Create persistent storage for mysql database on master"
-kubectl create -f local-volume.yml
-kubectl get pv   (pv = persistent volume)
-
-"Create pass for mysql"
-kubectl create secret generic mysql-pass --from-literal=password=ROOT_PASSWORD
-
-
-"Create mysql database"
-kubectl create -f mysql-deployment.yaml
-kubectl create -f wordpress-deployment.yaml
-
-"Actually deployment"
-kubectl get services ---> check service for wordpess UP ?
-
-"Install redirection plugin"
-abc.com/careers --> abc.com
-
--------
-"TODO"
--------
-- Create replica when using services (currently, only one node get deployed)
-  Answer: maybe not ? since each EC2 requires 2 EBS for PersistentStorage of WP + mysql
-          investigate how to do the replication
-- Think about load-balancing by creating more replica of wordpress ? --> deployment.yaml ?
-
-
-ip-172-20-42-59.us-west-2.compute.internal    node    < has pxctl
-ip-172-20-51-205.us-west-2.compute.internal   node    < has pxctl
-ip-172-20-58-59.us-west-2.compute.internal    master
-
-
-
-# Create role for CRD
-Notice: clone the latest etcd-operator repo  (https://github.com/coreos/etcd-operator)
-+ cd <clone_repo>/example/rbac/
-+ ./create_role
 
 #-----------------------------------------#
 #  Install etcd-operator & etcd-cluster   #
@@ -187,17 +153,13 @@ https://install.portworx.com/1.4/
   --fs=ext4 \
   mysql-disk
 
-#-----------------------------------------#
-#           TO-DO-INVESTIGATION           #
-#-----------------------------------------#
-- Kops problem when edit instancegroup 
-- Not use the LoabBalancer Type, expose NodePort (with Node can be access from internet)  
-
-
-apt-get update --yes
-apt-get install curl --yes
-apt-get install iputils-ping --yes
-apt-get install iproute2 --yes
-apt-get install net-tools --yes
-apt-get install traceroute --yes
+------------
+apt-get update --yes && \
+apt-get install curl --yes  && \
+apt-get install iputils-ping --yes  && \
+apt-get install iproute2 --yes  && \
+apt-get install net-tools --yes  && \
+apt-get install traceroute --yes  && \
+apt-get install stress --yes  && \
+apt-get install procps --yes  && \
 apt-get install iptables-persistent --yes

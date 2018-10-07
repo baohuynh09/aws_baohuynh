@@ -1,48 +1,40 @@
-kubectl get pods --all-namespaces
-kube-system   portworx-427zl     0/1       Running   0          6m
-kube-system   portworx-49h9p     0/1       Running   0          6m
 
-# view logs of kube-system "namespace"
-kubectl --namespace kube-system logs portworx-25dhw
-kubectl --namespace kube-system describe pods portworx-25dhw
-kubectl --namespace kube-system get pods portworx-25dhw -o yaml
-
-
-        
+aws configure (for re-invoke information caching)
 aws efs create-file-system --creation-token $(uuid)    
 -----
 {
     "SizeInBytes": {
         "Value": 0
     },
-    "CreationToken": "cea98976-a8e0-11e8-8981-028caf06c654",
+    "ThroughputMode": "bursting",
+    "CreationToken": "d68b03fe-ca41-11e8-80a5-02e4173a6bfe",
     "Encrypted": false,
-    "CreationTime": 1535254413.0,
+    "CreationTime": 1538924476.0,
     "PerformanceMode": "generalPurpose",
-    "FileSystemId": "fs-18722bb1",
+    "FileSystemId": "fs-fc0e1b55",
     "NumberOfMountTargets": 0,
     "LifeCycleState": "creating",
     "OwnerId": "495627566033"
 }
 
-
 + aws efs create-mount-target \
-        --file-system-id fs-18722bb1 \
+        --file-system-id fs-fc0e1b55 \
         --subnet-id subnet-019427bc1d90f1091 \
         --security-groups sg-04b62fc4af711d0e3
 -----
 {
-    "MountTargetId": "fsmt-6f95d4c6",
-    "NetworkInterfaceId": "eni-0611c0546eaa8cc64",
-    "FileSystemId": "fs-18722bb1",
+    "MountTargetId": "fsmt-5ab5e4f3",
+    "NetworkInterfaceId": "eni-04414b3844725e0ca",
+    "FileSystemId": "fs-fc0e1b55",
     "LifeCycleState": "creating",
     "SubnetId": "subnet-019427bc1d90f1091",
     "OwnerId": "495627566033",
-    "IpAddress": "172.20.63.77"
+    "IpAddress": "172.20.58.110"
 }
 
+
 check until LifeCycleState=available
-+ aws efs describe-mount-targets --file-system-id fs-18722bb1
++ aws efs describe-mount-targets --file-system-id fs-fc0e1b55 
 
 
 
