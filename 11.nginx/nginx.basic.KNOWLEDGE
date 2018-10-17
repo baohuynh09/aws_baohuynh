@@ -9,3 +9,23 @@ nginx -s reload
 nginx -s quit
 3.Fast shutdown    
 nginx -s stop
+
+simple directives --> single configurations
+block directives  --> two/more configurations (surround by braces {})
+
+
+
++ root: set the root directory for a request
++ service_name: define names for your server
+      --> server {
+              server_name mycompany.com *.mycompany.com;
+          }
++ listen: port listening
++ proxy_pass: redirect to the new server.
++ location: tail of URL link (ex: /, /images, /app1)
++ include : include addtional configuration files
+
+Logging:
++ error_log   <file>         <log_level>
+             logs/error.log     info; 
+
