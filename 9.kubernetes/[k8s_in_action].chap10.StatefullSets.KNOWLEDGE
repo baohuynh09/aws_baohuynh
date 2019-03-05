@@ -1,0 +1,12 @@
+#-------------------------------------------#
+# 				Open Question				#
+#-------------------------------------------#
+PersistenVolumeClaim in Replication set --> all pods will utilize on one PersistentVolume
+How about each pod use their own volume ? Not possible with ReplicationSet
+
+
+
+#-------------------------------------------#
+#       METHOD #2A: TALK TO API SERVER      #
+#           (from kubectl node)             #
+#-------------------------------------------#
